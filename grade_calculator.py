@@ -300,8 +300,96 @@ def main(page: ft.Page):
         update_cumulative_gpa()
         page.update()
 
+    # --- Import Dialog ---
+    import_text_field = ft.TextField(
+        multiline=True,
+        min_lines=10,
+        max_lines=15,
+        label="Paste your course data here",
+        hint_text="01999021\n3 หน่วยกิต\nThai Name\n\nEnglish Name\nGrade\n..."
+    )
+
+    def close_import_dialog(e):
+        page.close(import_dialog)
+
+    def run_import(e):
+        text = import_text_field.value
+        if not text:
+            close_import_dialog(None)
+            return
+
+        lines = [line.strip() for line in text.split('\n') if line.strip()]
+        
+        # Clear existing rows
+        course_rows.controls.clear()
+        
+        i = 0
+        while i < len(lines):
+            # We expect chunks of 5 lines (ignoring empty lines)
+            # 0: Code
+            # 1: Credits (contains "หน่วยกิต")
+            # 2: Name TH
+            # 3: Name EN
+            # 4: Grade
+            
+            if i + 4 >= len(lines):
+                break
+                
+            code = lines[i]
+            credits_str = lines[i+1]
+            name_th = lines[i+2]
+            name_en = lines[i+3]
+            grade = lines[i+4]
+            
+            # Basic validation to ensure we are aligned
+            if "หน่วยกิต" not in credits_str:
+                # Try to recover or skip
+                i += 1
+                continue
+
+            try:
+                credits = float(credits_str.split()[0])
+            except:
+                credits = 0.0
+
+            row = create_course_row()
+            # Set Name (Code + English Name)
+            row.controls[0].value = f"{code} {name_en}"
+            # Set Credits
+            row.controls[1].value = str(credits)
+            # Set Grade
+            if grade in grade_values:
+                row.controls[2].value = grade
+            else:
+                # If grade is not in our list (e.g. "N"), leave it empty
+                row.controls[2].value = None
+
+            course_rows.controls.append(row)
+            i += 5
+        
+        import_text_field.value = ""
+        close_import_dialog(None)
+        page.snack_bar = ft.SnackBar(ft.Text("Data imported successfully!"))
+        page.snack_bar.open = True
+        page.update()
+
+    import_dialog = ft.AlertDialog(
+        modal=True,
+        title=ft.Text("Import Data"),
+        content=import_text_field,
+        actions=[
+            ft.TextButton("Cancel", on_click=close_import_dialog),
+            ft.TextButton("Import", on_click=run_import),
+        ],
+        actions_alignment=ft.MainAxisAlignment.END,
+    )
+
+    def open_import_dialog(e):
+        page.open(import_dialog)
+
     # Buttons
     add_btn = ft.ElevatedButton("Add Course", icon=ft.Icons.ADD, on_click=add_course_row)
+    import_btn = ft.ElevatedButton("Import", icon=ft.Icons.UPLOAD_FILE, on_click=open_import_dialog)
     calc_btn = ft.ElevatedButton("Calculate GPA", icon=ft.Icons.CALCULATE, on_click=calculate_gpa)
     save_btn = ft.ElevatedButton("Save Semester", icon=ft.Icons.SAVE, on_click=save_semester, color="green")
     clear_btn = ft.ElevatedButton("Clear Form", icon=ft.Icons.CLEAR_ALL, on_click=clear_all, color="red")
@@ -333,7 +421,7 @@ def main(page: ft.Page):
                     semester_name_field
                 ], alignment=ft.MainAxisAlignment.CENTER),
                 
-                ft.Row([add_btn, calc_btn, save_btn, clear_btn], alignment=ft.MainAxisAlignment.CENTER),
+                ft.Row([add_btn, import_btn, calc_btn, save_btn, clear_btn], alignment=ft.MainAxisAlignment.CENTER),
                 ft.Divider(),
                 header,
                 course_rows,

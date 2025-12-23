@@ -9,6 +9,7 @@ A modern, interactive Grade Calculator application built with Python and [Flet](
 *   **Year Categorization**: Organize your semesters by year (Year 1, Year 2, etc.).
 *   **Cumulative GPA**: Automatically calculates your cumulative GPA across all saved semesters.
 *   **Edit & Delete**: Easily edit or delete previously saved semesters.
+*   **Import Data**: Quickly import course data from text.
 *   **Data Persistence**: Your data is saved locally (`grade_data.json`), so it's there when you come back.
 *   **Responsive UI**: Clean and responsive user interface.
 
@@ -48,9 +49,10 @@ python grade_calculator.py
 
 ## How to Use
 
-1.  **Add Courses**: Click "Add Course" to add more rows.
-2.  **Enter Details**: Fill in the Course Name, Credits, and select a Grade.
-3.  **Calculate**: Click "Calculate GPA" to see the GPA for the current entries.
+1.  **Import Data** (Optional): Click "Import" and paste your course data to automatically fill the form.
+2.  **Add Courses**: Click "Add Course" to add more rows.
+3.  **Enter Details**: Fill in the Course Name, Credits, and select a Grade.
+4.  **Calculate**: Click "Calculate GPA" to see the GPA for the current entries.
 4.  **Save**:
     *   Select the **Year**.
     *   Enter a **Semester Name** (e.g., "Semester 1").
