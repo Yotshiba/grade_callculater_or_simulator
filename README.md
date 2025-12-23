@@ -8,6 +8,10 @@ A modern, interactive Grade Calculator application built with Python and [Flet](
 *   **Save Semesters**: Save your semester data to keep track of your academic progress.
 *   **Year Categorization**: Organize your semesters by year (Year 1, Year 2, etc.).
 *   **Cumulative GPA**: Automatically calculates your cumulative GPA across all saved semesters.
+*   **Visual Dashboard**: Visualize your academic performance with interactive charts.
+    *   **GPA Trend**: View your GPA progression over time using a line chart.
+    *   **Grade Distribution**: See a breakdown of your grades in a pie chart.
+    *   **Download Charts**: Save your charts as images.
 *   **Edit & Delete**: Easily edit or delete previously saved semesters.
 *   **Import Data**: Quickly import course data from text.
 *   **Data Persistence**: Your data is saved locally (`grade_data.json`), so it's there when you come back.
@@ -36,7 +40,7 @@ A modern, interactive Grade Calculator application built with Python and [Flet](
 
 3.  Install the required dependencies:
     ```bash
-    pip install flet
+    pip install flet matplotlib seaborn
     ```
 
 ## Usage
@@ -49,19 +53,28 @@ python grade_calculator.py
 
 ## How to Use
 
+### Calculator Tab
 1.  **Import Data** (Optional): Click "Import" and paste your course data to automatically fill the form.
 2.  **Add Courses**: Click "Add Course" to add more rows.
 3.  **Enter Details**: Fill in the Course Name, Credits, and select a Grade.
 4.  **Calculate**: Click "Calculate GPA" to see the GPA for the current entries.
-4.  **Save**:
+5.  **Save**:
     *   Select the **Year**.
     *   Enter a **Semester Name** (e.g., "Semester 1").
     *   Click "Save Semester".
-5.  **Manage History**:
+6.  **Manage History**:
     *   View your history at the bottom, grouped by year.
     *   Click the **Pencil icon** to edit a semester.
     *   Click the **Trash icon** to delete a semester.
     *   Click "Clear History" to delete all saved data.
+
+### Dashboard Tab
+1.  Switch to the **Dashboard** tab at the top of the application.
+2.  **Filter by Year**: Use the dropdown to view statistics for "All Years" or a specific year.
+3.  **View Charts**:
+    *   **GPA Summary**: A line chart showing your GPA trend across semesters/years.
+    *   **Grade Distribution**: A pie chart showing the distribution of your letter grades.
+4.  **Download**: Click the "Download Chart" button to save the current view as an image.
 
 ## License
 
