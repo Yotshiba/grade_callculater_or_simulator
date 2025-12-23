@@ -12,9 +12,10 @@ A modern, interactive Grade Calculator application built with Python and [Flet](
     *   **GPA Trend**: View your GPA progression over time using a line chart.
     *   **Grade Distribution**: See a breakdown of your grades in a pie chart.
     *   **Download Charts**: Save your charts as images.
+*   **Dark/Light Theme**: Toggle between dark and light modes. Your preference is saved automatically.
 *   **Edit & Delete**: Easily edit or delete previously saved semesters.
 *   **Import Data**: Quickly import course data from text.
-*   **Data Persistence**: Your data is saved locally (`grade_data.json`), so it's there when you come back.
+*   **Data Persistence**: Your data is saved locally (`grade_data.json`), so it`s there when you come back.
 *   **Responsive UI**: Clean and responsive user interface.
 
 ## Prerequisites
@@ -48,7 +49,25 @@ A modern, interactive Grade Calculator application built with Python and [Flet](
 Run the application:
 
 ```bash
-python grade_calculator.py
+python main.py
+```
+
+## Project Structure
+
+The project is organized as follows:
+
+```
+Grade_calculator/
+│   main.py                  # Entry point of the application
+│   grade_data.json          # Data file for saved grades
+│   settings.json            # Settings file (theme preference)
+│   README.md                # Project documentation
+│
+└───grade_calculator_app/    # Application package
+        __init__.py
+        models.py            # Data models (Course, Semester, GradeManager)
+        data_manager.py      # Handles loading/saving data and settings
+        ui.py                # UI components and logic
 ```
 
 ## How to Use
@@ -79,3 +98,4 @@ python grade_calculator.py
 ## License
 
 [MIT](LICENSE)
+

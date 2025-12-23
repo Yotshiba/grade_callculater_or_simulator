@@ -1,3 +1,4 @@
 grader_cal/
 *.json
 __pycache__/
+*.png
