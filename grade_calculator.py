@@ -1,6 +1,13 @@
 import flet as ft
 import json
 import os
+import matplotlib
+import matplotlib.pyplot as plt
+import seaborn as sns
+import base64
+from io import BytesIO
+
+matplotlib.use('Agg') # Use non-interactive backend
 
 def main(page: ft.Page):
     page.title = "Grade Calculator"
@@ -35,7 +42,7 @@ def main(page: ft.Page):
     # }
     saved_data = {}
     
-    # State for editing
+    # State for editing-
     editing_state = {
         "is_editing": False,
         "year": None,
@@ -451,50 +458,210 @@ def main(page: ft.Page):
         alignment=ft.MainAxisAlignment.CENTER
     )
 
-    # Layout
-    page.add(
-        ft.Column(
-            controls=[
-                ft.Container(
-                    content=ft.Text("Grade Calculator", size=30, weight="bold"),
-                    alignment=ft.alignment.center,
-                    padding=20
-                ),
-                # Semester Info Inputs
-                ft.Row([
-                    year_dropdown,
-                    semester_name_field
-                ], alignment=ft.MainAxisAlignment.CENTER),
-                
-                ft.Row([add_btn, import_btn, calc_btn, save_btn, clear_btn], alignment=ft.MainAxisAlignment.CENTER),
-                ft.Divider(),
-                header,
-                course_rows,
-                ft.Divider(),
-                ft.Container(
-                    content=result_text,
-                    alignment=ft.alignment.center,
-                    padding=10
-                ),
-                ft.Divider(),
-                ft.Row(
-                    controls=[
-                        ft.Text("Semester History", size=20, weight="bold"),
-                        clear_hist_btn
-                    ],
-                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN
-                ),
-                history_column,
-                ft.Container(
-                    content=cumulative_result_text,
-                    alignment=ft.alignment.center,
-                    padding=20
-                )
-            ],
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            scroll=ft.ScrollMode.AUTO
-        )
+    # --- Dashboard Logic ---
+    dashboard_image = ft.Image(src_base64="", width=700, height=500, fit=ft.ImageFit.CONTAIN)
+    dashboard_year_dropdown = ft.Dropdown(
+        label="Filter by Year",
+        width=200,
+        options=[ft.dropdown.Option("All Years")] + [ft.dropdown.Option(f"Year {i}") for i in range(1, 5)] + [ft.dropdown.Option("Other")],
+        value="All Years"
     )
+
+    def generate_charts(e=None):
+        year_filter = dashboard_year_dropdown.value
+        
+        # Prepare data
+        years = []
+        gpas = []
+        
+        # For Grade Distribution
+        grade_counts = {}
+        
+        if year_filter == "All Years":
+            # Summary by Year
+            sorted_years = sorted(saved_data.keys())
+            for year in sorted_years:
+                semesters = saved_data[year]
+                total_points = sum(s['points'] for s in semesters)
+                total_credits = sum(s['credits'] for s in semesters)
+                if total_credits > 0:
+                    years.append(year)
+                    gpas.append(total_points / total_credits)
+                
+                # Collect grades
+                for s in semesters:
+                    for c in s.get('courses', []):
+                        g = c.get('grade')
+                        if g:
+                            grade_counts[g] = grade_counts.get(g, 0) + 1
+        else:
+            # Summary by Semester for specific Year
+            if year_filter in saved_data:
+                semesters = saved_data[year_filter]
+                for s in semesters:
+                    years.append(s['name'])
+                    gpas.append(s['gpa'])
+                    
+                    # Collect grades
+                    for c in s.get('courses', []):
+                        g = c.get('grade')
+                        if g:
+                            grade_counts[g] = grade_counts.get(g, 0) + 1
+        
+        if not years and not grade_counts:
+            dashboard_image.src_base64 = ""
+            dashboard_image.update()
+            return
+
+        # Set Seaborn style
+        sns.set_theme(style="whitegrid")
+
+        # Create Figure
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 10))
+        fig.subplots_adjust(hspace=0.4)
+        
+        # Plot 1: GPA Line Chart
+        if years:
+            sns.lineplot(x=years, y=gpas, ax=ax1, marker='o')
+            ax1.set_title(f'GPA Summary ({year_filter})')
+            ax1.set_ylabel('GPA')
+            ax1.set_ylim(0, 4.0)
+            # Add value labels
+            for i, v in enumerate(gpas):
+                ax1.text(i, v, f'{v:.2f}', ha='center', va='bottom')
+        else:
+            ax1.text(0.5, 0.5, 'No GPA Data', ha='center', va='center')
+
+        # Plot 2: Grade Distribution Pie Chart
+        if grade_counts:
+            labels = list(grade_counts.keys())
+            sizes = list(grade_counts.values())
+            # Use seaborn color palette for pie chart
+            colors = sns.color_palette('pastel')[0:len(labels)]
+            ax2.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90, colors=colors)
+            ax2.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+            ax2.set_title('Grade Distribution')
+        else:
+            ax2.text(0.5, 0.5, 'No Grade Data', ha='center', va='center')
+
+        # Save to buffer
+        buf = BytesIO()
+        plt.savefig(buf, format='png')
+        buf.seek(0)
+        img_str = base64.b64encode(buf.read()).decode('utf-8')
+        plt.close(fig)
+        
+        dashboard_image.src_base64 = img_str
+        dashboard_image.update()
+
+    def download_chart(e):
+        if not dashboard_image.src_base64:
+            page.snack_bar = ft.SnackBar(ft.Text("No chart to download!"))
+            page.snack_bar.open = True
+            page.update()
+            return
+            
+        # Decode base64 and save to file
+        try:
+            img_data = base64.b64decode(dashboard_image.src_base64)
+            filename = f"grade_chart_{dashboard_year_dropdown.value.replace(' ', '_')}.png"
+            with open(filename, "wb") as f:
+                f.write(img_data)
+            
+            page.snack_bar = ft.SnackBar(ft.Text(f"Chart saved as {filename}"))
+            page.snack_bar.open = True
+            page.update()
+        except Exception as ex:
+            print(f"Error saving chart: {ex}")
+
+    dashboard_year_dropdown.on_change = generate_charts
+    
+    # --- Tabs Layout ---
+    
+    calculator_view = ft.Column(
+        controls=[
+            ft.Container(
+                content=ft.Text("Grade Calculator", size=30, weight="bold"),
+                alignment=ft.alignment.center,
+                padding=20
+            ),
+            # Semester Info Inputs
+            ft.Row([
+                year_dropdown,
+                semester_name_field
+            ], alignment=ft.MainAxisAlignment.CENTER),
+            
+            ft.Row([add_btn, import_btn, calc_btn, save_btn, clear_btn], alignment=ft.MainAxisAlignment.CENTER),
+            ft.Divider(),
+            header,
+            course_rows,
+            ft.Divider(),
+            ft.Container(
+                content=result_text,
+                alignment=ft.alignment.center,
+                padding=10
+            ),
+            ft.Divider(),
+            ft.Row(
+                controls=[
+                    ft.Text("Semester History", size=20, weight="bold"),
+                    clear_hist_btn
+                ],
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+            ),
+            history_column,
+            ft.Container(
+                content=cumulative_result_text,
+                alignment=ft.alignment.center,
+                padding=20
+            )
+        ],
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        scroll=ft.ScrollMode.AUTO
+    )
+
+    dashboard_view = ft.Column(
+        controls=[
+            ft.Container(
+                content=ft.Text("Dashboard", size=30, weight="bold"),
+                alignment=ft.alignment.center,
+                padding=20
+            ),
+            ft.Row([
+                dashboard_year_dropdown,
+                ft.ElevatedButton("Refresh", icon=ft.Icons.REFRESH, on_click=generate_charts),
+                ft.ElevatedButton("Download Chart", icon=ft.Icons.DOWNLOAD, on_click=download_chart)
+            ], alignment=ft.MainAxisAlignment.CENTER),
+            ft.Divider(),
+            ft.Container(
+                content=dashboard_image,
+                alignment=ft.alignment.center
+            )
+        ],
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        scroll=ft.ScrollMode.AUTO
+    )
+
+    tabs = ft.Tabs(
+        selected_index=0,
+        animation_duration=300,
+        tabs=[
+            ft.Tab(
+                text="Calculator",
+                icon=ft.Icons.CALCULATE,
+                content=calculator_view
+            ),
+            ft.Tab(
+                text="Dashboard",
+                icon=ft.Icons.DASHBOARD,
+                content=dashboard_view
+            ),
+        ],
+        expand=1,
+        on_change=lambda e: generate_charts() if e.control.selected_index == 1 else None
+    )
+
+    page.add(tabs)
 
     # Load saved data
     load_from_file()
