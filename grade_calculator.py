@@ -19,7 +19,13 @@ def main(page: ft.Page):
         "C": 2.0,
         "D+": 1.5,
         "D": 1.0,
-        "F": 0.0
+        "F": 0.0,
+        "I": None,
+        "S": None,
+        "U": None,
+        "P": None,
+        "NP": None,
+        "N": None
     }
 
     # Data structure:
@@ -28,6 +34,13 @@ def main(page: ft.Page):
     #   "Year 2": [ ... ]
     # }
     saved_data = {}
+    
+    # State for editing
+    editing_state = {
+        "is_editing": False,
+        "year": None,
+        "index": None
+    }
 
     # UI Elements
     course_rows = ft.Column(spacing=10)
@@ -95,8 +108,11 @@ def main(page: ft.Page):
                 
                 if grade in grade_values:
                     points = grade_values[grade]
-                    total_points += points * credits
-                    total_credits += credits
+                    
+                    # Only calculate if points is not None (numeric grade)
+                    if points is not None:
+                        total_points += points * credits
+                        total_credits += credits
                     
                     courses.append({
                         "name": name,
@@ -155,20 +171,41 @@ def main(page: ft.Page):
             'courses': courses
         }
         
-        if year not in saved_data:
-            saved_data[year] = []
+        if editing_state["is_editing"]:
+            # Update existing semester
+            old_year = editing_state["year"]
+            old_index = editing_state["index"]
             
-        # Check if updating existing semester (simple check by name for now, could be improved with IDs)
-        # For now, we just append. Editing is handled by "Edit" button in history.
-        saved_data[year].append(semester_data)
+            # If year changed, remove from old year list
+            if old_year != year:
+                if old_year in saved_data and len(saved_data[old_year]) > old_index:
+                    del saved_data[old_year][old_index]
+                    if not saved_data[old_year]:
+                        del saved_data[old_year]
+                
+                # Add to new year list
+                if year not in saved_data:
+                    saved_data[year] = []
+                saved_data[year].append(semester_data)
+            else:
+                # Update in place
+                if year in saved_data and len(saved_data[year]) > old_index:
+                    saved_data[year][old_index] = semester_data
+            
+            page.snack_bar = ft.SnackBar(ft.Text(f"Updated {sem_name} in {year}"))
+        else:
+            # Save new semester
+            if year not in saved_data:
+                saved_data[year] = []
+            saved_data[year].append(semester_data)
+            page.snack_bar = ft.SnackBar(ft.Text(f"Saved {sem_name} to {year}"))
         
         save_to_file()
         refresh_history_view()
         update_cumulative_gpa()
         
-        # Reset form
+        # Reset form and state
         clear_all(None)
-        page.snack_bar = ft.SnackBar(ft.Text(f"Saved {sem_name} to {year}"))
         page.snack_bar.open = True
         page.update()
 
@@ -187,14 +224,14 @@ def main(page: ft.Page):
             row.controls[2].value = course['grade']
             course_rows.controls.append(row)
             
-        # Remove from saved data so it can be re-saved
-        del saved_data[year][index]
-        if not saved_data[year]:
-            del saved_data[year]
-            
-        save_to_file()
-        refresh_history_view()
-        update_cumulative_gpa()
+        # Set editing state
+        editing_state["is_editing"] = True
+        editing_state["year"] = year
+        editing_state["index"] = index
+        
+        save_btn.text = "Update Semester"
+        save_btn.icon = ft.Icons.UPDATE
+        
         calculate_gpa(None)
         page.update()
 
@@ -288,6 +325,14 @@ def main(page: ft.Page):
         course_rows.controls.clear()
         result_text.value = "GPA: 0.00"
         semester_name_field.value = "Semester 1"
+        
+        # Reset editing state
+        editing_state["is_editing"] = False
+        editing_state["year"] = None
+        editing_state["index"] = None
+        save_btn.text = "Save Semester"
+        save_btn.icon = ft.Icons.SAVE
+        
         # Add 4 initial rows back
         for _ in range(4):
             add_course_row()
