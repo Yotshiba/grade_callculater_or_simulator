@@ -41,7 +41,7 @@ A modern, interactive Grade Calculator application built with Python and [Flet](
 
 3.  Install the required dependencies:
     ```bash
-    pip install flet matplotlib seaborn
+    pip install -r requirements.txt
     ```
 
 ## Usage
